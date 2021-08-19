@@ -24,7 +24,7 @@ Parameters:
   InstanceType:
     Description: EC2 instance type for the replay handler.
     Type: String
-    Default: t4g.small
+    Default: t4g.micro
     AllowedValues: [
       t4g.nano, t4g.micro, t4g.small, t4g.medium, t4g.large, t4g.xlarge, t4g.2xlarge,
       t3.nano, t3.micro, t3.small, t3.medium, t3.large, t3.xlarge, t3.2xlarge,
@@ -86,6 +86,7 @@ Parameters:
     MinValue: 1
     MaxValue: 16777215
     ConstraintDescription: must be an integer between 1 and 16777215.
+    Default: '1234'
   LatestAmiIdX86:
     Description: DO NOT change this parameter. This refers to the latest Amazon Linux 2 AMI.
     Type: 'AWS::SSM::Parameter::Value<AWS::EC2::Image::Id>'
@@ -191,7 +192,7 @@ Resources:
       SecurityGroups:
         - !Ref InstanceSecurityGroup
       InstanceType: !Ref InstanceType
-      AssociatePublicIpAddress: "false"
+      AssociatePublicIpAddress: "true"
       UserData: !Base64 
         'Fn::Join':
           - ''
@@ -220,7 +221,8 @@ Resources:
               ### create a virtual network interface that gets decapsulated VXLAN packets
               #### compile & run go script ###
               mkdir $GOPATH"/src/vxlan-to-http-request"
-              wget https://github.com/aws-samples/http-requests-mirroring/raw/main/main.go -P $GOPATH"/src/vxlan-to-http-request"
+              wget https://github.com/ishikawam/http-requests-mirroring.git
+              #wget https://github.com/aws-samples/http-requests-mirroring/raw/main/main.go -P $GOPATH"/src/vxlan-to-http-request"
               go install "vxlan-to-http-request"
             - 'Fn::Sub': |
                 sudo ip link add vxlan0 type vxlan id ${TrafficMirroringVNI} dev eth0 dstport 4789
