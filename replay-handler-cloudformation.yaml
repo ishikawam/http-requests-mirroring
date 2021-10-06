@@ -44,7 +44,7 @@ Parameters:
     ConstraintDescription: must be a valid EC2 instance type.
   InstanceNumber:
     Type: Number
-    Default: 2
+    Default: 1
     Description: Number of EC2 instances in the replay handler.
   KeyName:
     Description: This parameter is optional. The name of the EC2 Key Pair to allow SSH access to the instances.
@@ -122,6 +122,11 @@ Parameters:
   PercentageByHeader:
     Description: If the parameter PercentageBy is set to 'header', then enter the name of the header. Otherwise, leave it empty.
     Type: String
+  TagName:
+    Description: Tag Name. Max length 32.
+    Type: String
+    MaxLength: 32
+    ConstraintDescription: This parameter is optional. Max length 32.
 
 Metadata:
   AWS::CloudFormation::Interface:
@@ -138,6 +143,7 @@ Metadata:
           - InstanceNumber
           - KeyName
           - SSHLocation
+          - TagName
       -
         Label:
           default: "Filters of mirroring"
@@ -165,6 +171,7 @@ Mappings:
 Conditions:
   UseArm: !Equals [!FindInMap [AmiMap, !Ref "InstanceType", "arch"], arm]
   KeyNameEmpty: !Equals [!Ref KeyName, '']
+  TagNameEmpty: !Equals [!Ref TagName, '']
   HasSSHLocation: !Not [!Equals [!Ref SSHLocation, '']]
 
 Resources:
@@ -237,6 +244,8 @@ Resources:
       LoadBalancerAttributes:
         - Key: load_balancing.cross_zone.enabled
           Value: "true"
+      Name: !If [TagNameEmpty, !Ref 'AWS::NoValue', !Ref TagName]
+      Tags: !If [TagNameEmpty, !Ref 'AWS::NoValue', [{Key: "Name", Value: !Ref TagName}]]
   NLBListener:
     Type: 'AWS::ElasticLoadBalancingV2::Listener'
     Properties:
@@ -252,6 +261,8 @@ Resources:
       Port: 4789
       Protocol: UDP
       VpcId: !Ref HandlerVpcId
+      Name: !If [TagNameEmpty, !Ref 'AWS::NoValue', !Ref TagName]
+      Tags: !If [TagNameEmpty, !Ref 'AWS::NoValue', [{Key: "Name", Value: !Ref TagName}]]
   InstanceSecurityGroup:
     Type: 'AWS::EC2::SecurityGroup'
     Properties:
@@ -266,6 +277,7 @@ Resources:
           ToPort: 4789
           CidrIp: !GetAtt VpcInfo.CidrBlock
       VpcId: !Ref HandlerVpcId
+      Tags: !If [TagNameEmpty, !Ref 'AWS::NoValue', [{Key: "Name", Value: !Ref TagName}]]
 
   InstanceSecurityGroupSSHIngress:
     Type: 'AWS::EC2::SecurityGroupIngress'
@@ -281,9 +293,12 @@ Resources:
     Type: 'AWS::EC2::TrafficMirrorTarget'
     Properties:
       NetworkLoadBalancerArn: !Ref NetworkLoadBalancer
+      Tags: !If [TagNameEmpty, !Ref 'AWS::NoValue', [{Key: "Name", Value: !Ref TagName}]]
 
   TrafficMirrorFilter:
     Type: 'AWS::EC2::TrafficMirrorFilter'
+    Properties:
+      Tags: !If [TagNameEmpty, !Ref 'AWS::NoValue', [{Key: "Name", Value: !Ref TagName}]]
 
   TrafficMirrorFilterRule:
     Type: 'AWS::EC2::TrafficMirrorFilterRule'
