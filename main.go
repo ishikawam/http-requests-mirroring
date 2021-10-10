@@ -127,6 +127,9 @@ func forwardRequest(req *http.Request, reqSourceIP string, reqDestionationPort s
 	url := fmt.Sprintf("%s%s", string(*fwdDestination), req.RequestURI)
 
 	// create a new HTTP request
+	if req.Method != "get" && req.Method != "GET" {
+		return
+	}
 	forwardReq, err := http.NewRequest(req.Method, url, bytes.NewReader(body))
 	if err != nil {
 		return
@@ -153,6 +156,12 @@ func forwardRequest(req *http.Request, reqSourceIP string, reqDestionationPort s
 	if forwardReq.Header.Get("X-Forwarded-Host") == "" {
 		forwardReq.Header.Set("X-Forwarded-Host", req.Host)
 	}
+
+
+	// ためす
+	// forwardReq.Header.Set("Host", req.Host)
+	forwardReq.Host = req.Host
+
 
 	// Execute the new HTTP request
 	httpClient := &http.Client{}
